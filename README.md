@@ -25,4 +25,4 @@ $ python coingame.py --total_budgets 1000000 --max_round 30
 
 ---
 ## example
-![toy_example](example.png)
+![toy_example](example.gif)
