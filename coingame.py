@@ -34,35 +34,46 @@ for coin_name in df.loc[:, "coin"]:
     )
 
 # define app layout
-app = dash.Dash(__name__)
+external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(
     [
         html.H1(children="Coin Market"),
         html.H2(children=f"total budget: {total_budgets}"),
         html.H2(id="total_expense", children="total expense: 0"),
-        dash_table.DataTable(
-            id="coin-table",
-            columns=[{"name": i, "id": i} for i in df.columns],
-            data=df.to_dict("records"),
-            style_data_conditional=[
-                {
-                    "if": {
-                        "filter_query": "{get_prize} = 1",
-                    },
-                    "backgroundColor": "#6ca0dc",
-                    "color": "white",
-                },
-                {
-                    "if": {
-                        "filter_query": "{get_prize} = 0",
-                    },
-                    "backgroundColor": "#e34132",
-                    "color": "white",
-                },
+        html.Div(
+            [
+                html.Div(
+                    dcc.Graph(id="live-graph", animate=True), className="six columns"
+                ),
+                html.Div(
+                    dash_table.DataTable(
+                        id="coin-table",
+                        columns=[{"name": i, "id": i} for i in df.columns],
+                        data=df.to_dict("records"),
+                        style_data_conditional=[
+                            {
+                                "if": {
+                                    "filter_query": "{get_prize} = 1",
+                                },
+                                "backgroundColor": "#6ca0dc",
+                                "color": "white",
+                            },
+                            {
+                                "if": {
+                                    "filter_query": "{get_prize} = 0",
+                                },
+                                "backgroundColor": "#e34132",
+                                "color": "white",
+                            },
+                        ],
+                    ),
+                    className="six columns",
+                ),
             ],
+            className="row",
         ),
-        dcc.Graph(id="live-graph", animate=True),
-        dcc.Interval(id="graph-update", interval=3000, n_intervals=0),
+        dcc.Interval(id="graph-update", interval=2000, n_intervals=0),
     ]
 )
 
