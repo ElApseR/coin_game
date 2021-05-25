@@ -56,14 +56,14 @@ app.layout = html.Div(
                                 "if": {
                                     "filter_query": "{get_prize} = 1",
                                 },
-                                "backgroundColor": "#6ca0dc",
+                                "backgroundColor": "#1F77B4",
                                 "color": "white",
                             },
                             {
                                 "if": {
                                     "filter_query": "{get_prize} = 0",
                                 },
-                                "backgroundColor": "#e34132",
+                                "backgroundColor": "#FF7F0E",
                                 "color": "white",
                             },
                         ],
