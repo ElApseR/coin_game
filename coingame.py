@@ -6,17 +6,16 @@ import dash_html_components as html
 import plotly
 import plotly.graph_objs as go
 import pandas as pd
+import numpy as np
 from brownian import Brownian
 import argparse
 
 # prepare argparse
 parser = argparse.ArgumentParser(description="Args of dash")
-parser.add_argument("--total_budgets", type=int, default=1000000)
 parser.add_argument("--max_round", type=int, default=60)
 args = parser.parse_args()
 
 # get params
-total_budgets = args.total_budgets
 max_round = args.max_round
 
 # minmax value for axis range
@@ -24,7 +23,7 @@ max_y = 100
 min_y = 100
 
 # read csv for table data
-df = pd.read_csv("wishlist.csv").assign(coin_price=100, get_prize=1)
+df = pd.read_csv("wishlist.csv").assign(coin_price=100, ranking=1)
 
 # define brownians. not efficient but small people will play
 coin_brownian_all = {}
@@ -39,8 +38,6 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(
     [
         html.H1(children="Coin Market"),
-        html.H2(children=f"total budget: {total_budgets}"),
-        html.H2(id="total_expense", children="total expense: 0"),
         html.Div(
             [
                 html.Div(
@@ -54,14 +51,14 @@ app.layout = html.Div(
                         style_data_conditional=[
                             {
                                 "if": {
-                                    "filter_query": "{get_prize} = 1",
+                                    "filter_query": "{ranking} <= 5",
                                 },
                                 "backgroundColor": "#1F77B4",
                                 "color": "white",
                             },
                             {
                                 "if": {
-                                    "filter_query": "{get_prize} = 0",
+                                    "filter_query": "{ranking} > 5",
                                 },
                                 "backgroundColor": "#FF7F0E",
                                 "color": "white",
@@ -81,7 +78,6 @@ app.layout = html.Div(
 @app.callback(
     Output("live-graph", "figure"),
     Output("coin-table", "data"),
-    Output("total_expense", "children"),
     [Input("graph-update", "n_intervals")],
 )
 def update_graph_scatter(n):
@@ -110,26 +106,13 @@ def update_graph_scatter(n):
         # update last price
         current_coin_price[coin_name] = last_y
 
-    # get ready to update data of table
-    cumulated_won = 0
-    whether_get_prize = []
-
     # update coin price as current price
     df.loc[:, "coin_price"] = df.coin.map(current_coin_price)
-    df = df.sort_values(by="coin_price", ascending=False).reset_index(drop=True)
-
-    # update whether one can get coin
-    for price in df.wishlist_won:
-        if cumulated_won + price <= total_budgets:
-            cumulated_won += price
-            whether_get_prize.append(1)
-        else:
-            whether_get_prize.append(0)
-    df.loc[:, "get_prize"] = whether_get_prize
-
-    # total_expense
-    total_expense = df.loc[lambda row: row.get_prize == 1, "wishlist_won"].sum()
-    expense_str = f"total expense: {total_expense}"
+    df = (
+        df.sort_values(by="coin_price", ascending=False)
+        .reset_index(drop=True)
+        .assign(ranking=np.arange(df.shape[0]) + 1)
+    )
 
     return (
         {
@@ -140,7 +123,6 @@ def update_graph_scatter(n):
             ),
         },
         df.to_dict("records"),
-        expense_str,
     )
 
 
