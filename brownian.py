@@ -1,4 +1,8 @@
 import numpy as np
+import pandas as pd
+import argparse
+import time
+import pickle
 
 
 class Brownian:
@@ -70,7 +74,33 @@ class Brownian:
         return s
 
 
+def run_brownian(max_round):
+    # read csv for table data
+    df = pd.read_csv("wishlist.csv")
+
+    # define brownians. not efficient but small people will play
+    for i in range(max_round):
+        coin_brownian_all = {}
+        for coin_name in df.loc[:, "coin"]:
+            coin_brownian_all[coin_name] = Brownian(seed_value=coin_name).stock_price(
+                deltaT=max_round
+            )[: (i + 1)]
+
+        # save brownian temp result
+        with open("coin_brownian.pickle", "wb") as f:
+            pickle.dump(coin_brownian_all, f, pickle.HIGHEST_PROTOCOL)
+
+        # sleep for lazy run
+        if i > 0:
+            time.sleep(20)
+
+
 if __name__ == "__main__":
-    prices = Brownian(seed_value="gucci").stock_price()
-    print("length:", len(prices))
-    print(prices)
+    # prepare argparse
+    parser = argparse.ArgumentParser(description="Args of dash")
+    parser.add_argument("--max_round", type=int, default=60)
+    args = parser.parse_args()
+    max_round = args.max_round
+
+    # run saving brownian results
+    run_brownian(max_round)

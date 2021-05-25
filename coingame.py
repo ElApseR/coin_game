@@ -7,8 +7,10 @@ import plotly
 import plotly.graph_objs as go
 import pandas as pd
 import numpy as np
-from brownian import Brownian
+import time
 import argparse
+import pickle
+import subprocess
 
 # prepare argparse
 parser = argparse.ArgumentParser(description="Args of dash")
@@ -22,15 +24,12 @@ max_round = args.max_round
 max_y = 100
 min_y = 100
 
+# run brownian process in another process. sleep for lazy app run
+subprocess.Popen(["python", "brownian.py", "--max_round", f"{max_round}"])
+time.sleep(1)
+
 # read csv for table data
 df = pd.read_csv("wishlist.csv").assign(coin_price=100, ranking=1)
-
-# define brownians. not efficient but small people will play
-coin_brownian_all = {}
-for coin_name in df.loc[:, "coin"]:
-    coin_brownian_all[coin_name] = Brownian(seed_value=coin_name).stock_price(
-        deltaT=max_round
-    )
 
 # define app layout
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
@@ -70,7 +69,7 @@ app.layout = html.Div(
             ],
             className="row",
         ),
-        dcc.Interval(id="graph-update", interval=2000, n_intervals=0),
+        dcc.Interval(id="graph-update", interval=20 * 1000, n_intervals=0),
     ]
 )
 
@@ -81,13 +80,20 @@ app.layout = html.Div(
     [Input("graph-update", "n_intervals")],
 )
 def update_graph_scatter(n):
-    global max_y, min_y, coin_brownian_all, df
+    global max_y, min_y, df
+
+    # get updated brownian results
+    with open("coin_brownian.pickle", "rb") as f:
+        coin_brownian_all = pickle.load(f)
+
+    # x range with length of brownian
+    x_list = list(range(list(coin_brownian_all.values())[0].__len__()))
+
     data_list = []
     current_coin_price = {}
-    x_list = list(range(n + 1))
     for coin_name, prices in coin_brownian_all.items():
         # update price
-        y_list = prices[: (n + 1)]
+        y_list = prices
 
         # reset minmax
         last_y = y_list[-1]
@@ -118,7 +124,7 @@ def update_graph_scatter(n):
         {
             "data": data_list,
             "layout": go.Layout(
-                xaxis=dict(range=[0, n + 1]),
+                xaxis=dict(range=[0, max(x_list) + 1]),
                 yaxis=dict(range=[min_y, max_y]),
             ),
         },
